@@ -106,7 +106,8 @@ public void OnEntityCreated(int entity, const char[] classname)
 
 public Action killJunk(Handle timer, any junk)
 {
-	RemoveEdict(junk);
+	IsValidEdict(junk) && RemoveEdict(junk);
+	
 	return Plugin_Continue;
 }
 

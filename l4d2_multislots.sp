@@ -42,7 +42,7 @@ bool	bMaxplayers, g_bRoundStarted, gbVehicleLeaving, gbFirstItemPickedUp;
 bool	PlayerWentAFK[MAXPLAYERS + 1], MenuFunc_SpecNext[MAXPLAYERS + 1];
 Handle	g_TimerSpecCheck, g_hBotsUpdateTimer;
 Handle	hRoundRespawn, hTakeOverBot, hSetHumanSpec, hRestart, hGoAwayFromKeyboard;
-Handle	ClientTimer_Index[MAXPLAYERS + 1], hJoinsSurvivor[MAXPLAYERS + 1];
+Handle	ClientTimer_Index[MAXPLAYERS + 1], hJoinsSurvivor[MAXPLAYERS + 1], ClientTimer_Away[MAXPLAYERS + 1];
 int		g_iBotPlayer[MAXPLAYERS + 1], ClientSpawnMaxTimer[MAXPLAYERS + 1], iDelayedValidationStatus[MAXPLAYERS + 1];
 
 Address g_pStatsCondition;
@@ -351,8 +351,13 @@ void vRoundRespawn(int client)
 
 void vRoundKill(int client)
 {
-	StripWeapons(client);
-	ForcePlayerSuicide(client);	   //幸存者自杀代码.
+	client = GetClientOfUserId(client);
+
+	if (IsValidClient(client))
+	{
+		StripWeapons(client);
+		ForcePlayerSuicide(client);	   //幸存者自杀代码.
+	}
 }
 
 void vStatsConditionPatch(bool bPatch)
@@ -448,6 +453,7 @@ void Iskilltimer()
 	{
 		delete hJoinsSurvivor[i];
 		delete ClientTimer_Index[i];
+		delete ClientTimer_Away[i];
 	}
 }
 
@@ -610,7 +616,7 @@ public Action CheckClientState(Handle Timer, DataPack hPack)
 			ClientSpawnMaxTimer[client] = 0;
 		}
 
-		if (!client || ClientSpawnMaxTimer[client] >= 60 || !IsClientConnected(client) || !ClientSpawnMaxTimer[client] || (GetClientTeam(client) == 1 && iGetBotOfIdle(client)))
+		if (!client || ClientSpawnMaxTimer[client] >= 60 || !IsClientConnected(client) || !ClientSpawnMaxTimer[client] || (GetClientTeam(client) == 1 && iGetBotOfIdle(client)) || GetClientTeam(client) == 2)
 		{
 			ClientSpawnMaxTimer[client] = 0;
 			ClientTimer_Index[client]	= null;
@@ -689,7 +695,7 @@ void TakeOverBot(int client, bool completely, bool IsDead)
 
 	if (IsDead)
 	{
-		CreateTimer(0.4, CheckAndKillPlayerTimer, GetClientUserId(client), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+		CreateTimer(1.0, CheckAndKillPlayerTimer, GetClientUserId(client), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 	}
 
 	return;
@@ -701,25 +707,26 @@ public Action CheckAndKillPlayerTimer(Handle hTimer, int userid)
 	if (!client || !IsClientInGame(client)) return Plugin_Stop;
 
 	int team = GetClientTeam(client);
+	int bot;
 
 	if (team == TEAM_SPECTATOR)
 	{
-		if (iGetBotOfIdle(client))
+		bot = iGetBotOfIdle(client);
+		if (!bot || !IsAlive(bot))
 		{
-			vTakeOver(client);
-		}
-		else
-		{
-			int bot = FindBotToTakeOver();
+			bot = FindBotToTakeOver();
 			if (bot == 0)
 			{
 				PrintHintText(client, "[提示] 目前没有存活的电脑接管.");
 				return Plugin_Stop;
 			}
-
-			SDKCall(hSetHumanSpec, bot, client);
-			SDKCall(hTakeOverBot, client, true);
 		}
+
+		vRoundKill(GetClientUserId(bot));
+		vRoundKill(GetClientUserId(client));
+
+		SDKCall(hSetHumanSpec, bot, client);
+		SDKCall(hTakeOverBot, client, true);
 
 		// CreateTimer(0.1, KillPlayerTimer, userid);
 		KillPlayerTimer(userid);
@@ -750,7 +757,7 @@ void KillPlayerTimer(int userid)
 
 	if (IsValidClient(client) && GetClientTeam(client) == TEAM_SURVIVOR)
 	{
-		vRoundKill(client);
+		vRoundKill(userid);
 		PrintToChatAll("\x04[提示]\x05检测到\x03%N\x05在刷复活，立刻拿下！", client);
 	}
 
@@ -846,6 +853,7 @@ public void Event_Playerdisconnect(Event event, const char[] name, bool dontBroa
 	{
 		delete hJoinsSurvivor[client];
 		delete ClientTimer_Index[client];
+		delete ClientTimer_Away[client];
 		RequestFrame(l4d2_kick_SurvivorBot);
 	}
 }
@@ -1379,7 +1387,10 @@ public Action GoAFK(int client, int args)
 			else if (GetClientTeam(client) == TEAM_SURVIVOR)
 			{
 				if (g_iAway == 1)
-					ChangeClientTeam(client, 1);
+					if (ClientTimer_Away[client] == null)
+						ClientTimer_Away[client] = CreateTimer(1.0, ChangeClientSpecTimer, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);	 //延迟一秒执行(防止卡死
+					else
+						PrintToChat(client, "\x04[提示]\x05你的旁观者操作正在执行中,请勿滥用.");
 				else if (g_iAway == 2)
 				{
 					if (bCheckClientAccess(client))
@@ -1390,6 +1401,14 @@ public Action GoAFK(int client, int args)
 			}
 		}
 	}
+	return Plugin_Handled;
+}
+
+public Action ChangeClientSpecTimer(Handle TImer, int client)
+{
+	client = GetClientOfUserId(client);
+	ChangeClientTeam(client, 1);
+	ClientTimer_Away[client] = null;
 	return Plugin_Handled;
 }
 

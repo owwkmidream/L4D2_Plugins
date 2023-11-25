@@ -69,7 +69,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_current", CurrentCmd);
 	RegAdminCmd("sm_bossdebug", DebugCmd, ADMFLAG_KICK);
 
-	HookEvent("player_left_start_area", LeftStartAreaEvent, EventHookMode_PostNoCopy);
+	HookEvent("tank_spawn", Event_TankSpawn);
 }
 
 public Action L4D_OnGetScriptValueInt(const char[] key, int &retVal)
@@ -112,11 +112,6 @@ public void OnMapStart()
 	GetCurrentMap(mapName, sizeof(mapName));
 	Process_GetMapData(mapName);
 	g_bIsGameStarted = false;
-}
-
-public void LeftStartAreaEvent(Event event, const char[] name, bool dontBroadcast)
-{
-	BossCmd(0, 0);
 }
 
 bool Process_GetMapData(const char[] mapName)
@@ -280,6 +275,8 @@ public void L4D_OnFirstSurvivorLeftSafeArea_Post(int client)
 
 	RandomizeBossesSpawnPercent();
 	g_bIsGameStarted = true;
+
+	BossCmd(0, 0);
 }
 
 public void RandomizeBossesSpawnPercent()
@@ -371,6 +368,8 @@ public Action BossCmd(int client, int args)
 	if (!L4D2_IsGenericCooperativeMode())
 		return Plugin_Handled;
 
+	char Message[256];
+	char MsgBuffer[256];
 	if (!L4D_IsMissionFinalMap())
 	{
 		if (GetDifficultyIndex() <= g_cvShowBossPercRules.IntValue)
@@ -380,24 +379,44 @@ public Action BossCmd(int client, int args)
 				if (g_iTankSpawnChance[g_iChapterSpawnedTankCount] > 0)
 				{
 					if (g_iTankSpawnPercent[g_iChapterSpawnedTankCount] > 0)
-						CPrintToChatAll("{green}[{default}Tank{green}]{default}: {blue}%d%%", g_iTankSpawnPercent[g_iChapterSpawnedTankCount]);
+						// CPrintToChatAll("{green}[{default}Tank{green}]{default}: {blue}%d%%", g_iTankSpawnPercent[g_iChapterSpawnedTankCount]);
+						Format(Message, sizeof(Message), "{green}[{default}Tank{green}]{default}: {blue}%d%%", g_iTankSpawnPercent[g_iChapterSpawnedTankCount]);
 					else
-						CPrintToChatAll("{green}[{default}Tank{green}]{default}: {blue}无");
+						// CPrintToChatAll("{green}[{default}Tank{green}]{default}: {blue}无");
+						Format(Message, sizeof(Message), "{green}[{default}Tank{green}]{default}: {blue}无");
 				}
 				else if (g_iTankSpawnChance[g_iChapterSpawnedTankCount] == -1)
-					CPrintToChatAll("{green}[{default}Tank{green}]{default}: {blue}事件");
-				else CPrintToChatAll("{green}[{default}Tank{green}]{default}: {blue}无");
+					// CPrintToChatAll("{green}[{default}Tank{green}]{default}: {blue}事件");
+					Format(Message, sizeof(Message), "{green}[{default}Tank{green}]{default}: {blue}事件");
+				else
+					// CPrintToChatAll("{green}[{default}Tank{green}]{default}: {blue}无");
+					Format(Message, sizeof(Message), "{green}[{default}Tank{green}]{default}: {blue}无");
+
+				Format(Message, sizeof(Message), "%s ", Message);
+				StrCat(MsgBuffer, sizeof(MsgBuffer), Message);
 
 				if (g_iWitchSpawnPercent[g_iChapterSpawnedWitchCount] > 0)
-					CPrintToChatAll("{green}[{default}Witch{green}]{default}: {blue}%d%%", g_iWitchSpawnPercent[g_iChapterSpawnedWitchCount]);
+					// CPrintToChatAll("{green}[{default}Witch{green}]{default}: {blue}%d%%", g_iWitchSpawnPercent[g_iChapterSpawnedWitchCount]);
+					Format(Message, sizeof(Message), "{green}[{default}Witch{green}]{default}: {blue}%d%%", g_iWitchSpawnPercent[g_iChapterSpawnedWitchCount]);
 				else
-					CPrintToChatAll("{green}[{default}Witch{green}]{default}: {blue}无");
+					// CPrintToChatAll("{green}[{default}Witch{green}]{default}: {blue}无");
+					Format(Message, sizeof(Message), "{green}[{default}Witch{green}]{default}: {blue}无");
+
+				Format(Message, sizeof(Message), "%s ", Message);
+				StrCat(MsgBuffer, sizeof(MsgBuffer), Message);
 			}
-			else CPrintToChatAll("{green}[{default}Bosses{green}]{default}: 游戏未开始，刷新概率尚未定义!");
+			else
+				// CPrintToChatAll("{green}[{default}Bosses{green}]{default}: 游戏未开始，刷新概率尚未定义!");
+				Format(MsgBuffer, sizeof(MsgBuffer), "{green}[{default}Bosses{green}]{default}: 游戏未开始，刷新概率尚未定义!");
 		}
 	}
 
-	CPrintToChatAll("{green}[{default}当前{green}]{default}: {blue}%d%%", GetCurrentSurvivorsMapCompletion());
+	// CPrintToChatAll("{green}[{default}当前{green}]{default}: {blue}%d%%", GetCurrentSurvivorsMapCompletion());
+	Format(Message, sizeof(Message), "{green}[{default}当前{green}]{default}: {blue}%d%%", GetCurrentSurvivorsMapCompletion());
+	StrCat(MsgBuffer, sizeof(MsgBuffer), Message);
+
+	CPrintToChatAll("%s", MsgBuffer);
+
 	return Plugin_Handled;
 }
 
@@ -452,7 +471,8 @@ public void OnGameFrame()
 		{
 			if (g_iTankSpawnPercent[g_iChapterSpawnedTankCount] > 0)
 				if (GetCurrentSurvivorsMapCompletion() >= g_iTankSpawnPercent[g_iChapterSpawnedTankCount])
-					Process_SpawnTank();
+					// Process_SpawnTank();
+					RequestFrame(Process_SpawnTank);
 		}
 
 		if (g_iChapterSpawnedWitchCount < g_iMaxWitches)
@@ -490,28 +510,29 @@ void Process_SpawnWitch()
 	}
 }
 
-public Action L4D_OnSpawnTank(const float vecPos[3], const float vecAng[3])
+// public Action L4D_OnSpawnTank(const float vecPos[3], const float vecAng[3])
+public void Event_TankSpawn(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!L4D2_IsGenericCooperativeMode())
-		return Plugin_Continue;
+		return;
 
 	if (!L4D_IsMissionFinalMap())
 	{
 		if (g_iTankSpawnChance[g_iChapterSpawnedTankCount] == -1)	 // if Event Tank spawn...
 		{
 			g_iChapterSpawnedTankCount++;
-			return Plugin_Continue;
+			return;
 		}
 
 		if (g_bIsTankSpawnAllowed)
 		{
 			g_iChapterSpawnedTankCount++;
-			return Plugin_Continue;
+			return;
 		}
-		else return Plugin_Handled;
+		else return;
 	}
 
-	return Plugin_Continue;
+	return;
 }
 
 public Action L4D_OnSpawnWitch(const float vecPos[3], const float vecAng[3])

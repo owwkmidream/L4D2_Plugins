@@ -110,19 +110,19 @@ public void OnPluginStart()
 
 	l4d_tank_throw_si_ai   = CreateConVar("l4d_tank_throw_si_ai", "33.0", "AI Tank 投掷特殊感染者的几率 [0.0, 100.0]", FCVAR_NOTIFY, true, 0.0, true, 100.0);
 	l4d_tank_throw_si_real = CreateConVar("l4d_tank_throw_si_player", "33.0", "真人玩家 Tank 投掷特殊感染者的几率 [0.0, 100.0]", FCVAR_NOTIFY, true, 0.0, true, 100.0);
-	l4d_tank_throw_hunter  = CreateConVar("l4d_tank_throw_hunter", "5.0", "Hunter 的权重[0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 10.0);
-	l4d_tank_throw_smoker  = CreateConVar("l4d_tank_throw_smoker", "5.0", "Smoker 的权重[0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 10.0);
-	l4d_tank_throw_boomer  = CreateConVar("l4d_tank_throw_boomer", "5.0", "Boomer 的权重[0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 10.0);
+	l4d_tank_throw_hunter  = CreateConVar("l4d_tank_throw_hunter", "5.0", "Hunter 的权重[0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 100.0);
+	l4d_tank_throw_smoker  = CreateConVar("l4d_tank_throw_smoker", "5.0", "Smoker 的权重[0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 100.0);
+	l4d_tank_throw_boomer  = CreateConVar("l4d_tank_throw_boomer", "5.0", "Boomer 的权重[0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 100.0);
 	if (L4D2Version)
 	{
-		l4d_tank_throw_charger = CreateConVar("l4d_tank_throw_charger", "5.0", "Charger 的权重 [0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 10.0);
-		l4d_tank_throw_spitter = CreateConVar("l4d_tank_throw_spitter", "5.0", "Spitter 的权重 [0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 10.0);
-		l4d_tank_throw_jockey  = CreateConVar("l4d_tank_throw_jockey", "5.0", "Jockey 的权重 [0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 10.0);
+		l4d_tank_throw_charger = CreateConVar("l4d_tank_throw_charger", "5.0", "Charger 的权重 [0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 100.0);
+		l4d_tank_throw_spitter = CreateConVar("l4d_tank_throw_spitter", "5.0", "Spitter 的权重 [0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 100.0);
+		l4d_tank_throw_jockey  = CreateConVar("l4d_tank_throw_jockey", "5.0", "Jockey 的权重 [0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 100.0);
 	}
-	l4d_tank_throw_tank			= CreateConVar("l4d_tank_throw_tank", "4.0", "Tank 的权重[0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 10.0);
-	l4d_tank_throw_self			= CreateConVar("l4d_tank_throw_self", "5.0", "Tank 投掷自身的权重[0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 10.0);
+	l4d_tank_throw_tank			= CreateConVar("l4d_tank_throw_tank", "2.0", "Tank 的权重[0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 100.0);
+	l4d_tank_throw_self			= CreateConVar("l4d_tank_throw_self", "5.0", "Tank 投掷自身的权重[0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 100.0);
 	l4d_tank_throw_tank_health	= CreateConVar("l4d_tank_throw_tank_health", "1500", "Tank 机器人的生命值", FCVAR_NOTIFY, true, 1.0);
-	l4d_tank_throw_witch		= CreateConVar("l4d_tank_throw_witch", "4.0", "Witch 的权重[0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 10.0);
+	l4d_tank_throw_witch		= CreateConVar("l4d_tank_throw_witch", "4.0", "Witch 的权重[0.0, 10.0]", FCVAR_NOTIFY, true, 0.0, true, 100.0);
 	l4d_tank_throw_witch_health = CreateConVar("l4d_tank_throw_witch_health", "750", "Witch 的生命值", FCVAR_NOTIFY, true, 1.0);
 	g_hWitchKillTime			= CreateConVar("l4d_tank_throw_witch_lifespan", "120", "援助 Witch 的生存时间（秒）。只移除由此插件生成的 Witch", FCVAR_NOTIFY, true, 1.0);
 	l4d_tank_throw_hunter_limit = CreateConVar("l4d_tank_throw_hunter_limit", "2", "场上 Hunter 的上限[1 ~ 5] (如果达到上限，投掷 Hunter 队友，如果所有 Hunters 都在忙，投掷 Tank 自身)", FCVAR_NOTIFY, true, 1.0, true, 5.0);
@@ -626,11 +626,15 @@ stock int CreateSI(int thetank, const float pos[3], const float ang[3], const fl
 			SetEntProp(selected, Prop_Send, "m_iObserverMode", 0);
 			SetEntProp(selected, Prop_Send, "m_iPlayerState", 0);
 			SetEntProp(selected, Prop_Send, "m_zombieState", 0);
+
 			DispatchSpawn(selected);
 			ActivateEntity(selected);
 		}
 
-		if (chooseclass == ZC_TANK) SetEntityHealth(selected, throw_tank_health);
+		if (chooseclass == ZC_TANK)
+		{
+			SetEntityHealth(selected, throw_tank_health);
+		}
 	}
 	else if (selected == 0)	   // throw teammate
 	{
