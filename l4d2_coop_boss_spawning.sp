@@ -68,6 +68,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_boss", BossCmd);
 	RegConsoleCmd("sm_current", CurrentCmd);
 	RegAdminCmd("sm_bossdebug", DebugCmd, ADMFLAG_KICK);
+
+	HookEvent("player_left_start_area", LeftStartAreaEvent, EventHookMode_PostNoCopy);
 }
 
 public Action L4D_OnGetScriptValueInt(const char[] key, int &retVal)
@@ -110,6 +112,11 @@ public void OnMapStart()
 	GetCurrentMap(mapName, sizeof(mapName));
 	Process_GetMapData(mapName);
 	g_bIsGameStarted = false;
+}
+
+public void LeftStartAreaEvent(Event event, const char[] name, bool dontBroadcast)
+{
+	BossCmd(0, 0);
 }
 
 bool Process_GetMapData(const char[] mapName)
