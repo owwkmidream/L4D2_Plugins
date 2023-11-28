@@ -905,12 +905,12 @@ public int ChampVoteHandler(Menu menu, MenuAction action, int param1, int param2
 
 void CreateChangeMapTimer(const char[] mapName) {
 	float delay = g_hCVar_ChMapDelayTime.FloatValue > 0 ? g_hCVar_ChMapDelayTime.FloatValue : 5.0;
-	switch (g_iGameMode) {
-		case LMM_GAMEMODE_COOP: {delay=WAIT_TIME_BEFORE_SWITCH_COOP;}
-		case LMM_GAMEMODE_VERSUS: {delay=WAIT_TIME_BEFORE_SWITCH_VERSUS;}
-		case LMM_GAMEMODE_SCAVENGE: {delay=WAIT_TIME_BEFORE_SWITCH_SCAVENGE;}
-		case LMM_GAMEMODE_SURVIVAL: {delay=WAIT_TIME_BEFORE_SWITCH_SURVIVAL;}
-	}
+	// switch (g_iGameMode) {
+	// 	case LMM_GAMEMODE_COOP: {delay=WAIT_TIME_BEFORE_SWITCH_COOP;}
+	// 	case LMM_GAMEMODE_VERSUS: {delay=WAIT_TIME_BEFORE_SWITCH_VERSUS;}
+	// 	case LMM_GAMEMODE_SCAVENGE: {delay=WAIT_TIME_BEFORE_SWITCH_SCAVENGE;}
+	// 	case LMM_GAMEMODE_SURVIVAL: {delay=WAIT_TIME_BEFORE_SWITCH_SURVIVAL;}
+	// }
 	
 	DataPack dp;
 	CreateDataTimer(delay, Timer_ChangeMap, dp);
@@ -1003,7 +1003,7 @@ public void OnPluginStart() {
 	g_hCVar_MaxFinaleFailures = CreateConVar("l4d2_acs_max_coop_finale_failures", "0", "战役模式救援关幸存者任务失败多少次后自动换图? 0=禁用.", FCVAR_NOTIFY);
 	g_hCVar_ChMapPolicy =  CreateConVar("l4d2_acs_chmap_policy", "2", " 启用 !chmap 和 !chmap2 投票换图指令?\n 0=禁用(同时禁用公告投票换图指令).\n 1=启用(不投票视为不同意). \n 2=启用(不投票视为同意)", FCVAR_NOTIFY);	
 	g_hCVar_ChMapBroadcastInterval =  CreateConVar("l4d2_acs_chmap_broadcast_interval", "0.0", "设置循环公告投票指令 \"!chmap\" 的时间(秒). 0=禁用.", FCVAR_NOTIFY);	
-	g_hCVar_ChMapDelayTime =  CreateConVar("l4d2_acs_chmap_delay_time", "10.0", "设置地图完成后换图延迟的时间(秒). 0=禁用.", FCVAR_NOTIFY);	
+	g_hCVar_ChMapDelayTime =  CreateConVar("l4d2_acs_chmap_delay_time", "15.0", "设置地图完成后换图延迟的时间(秒). 0=禁用.", FCVAR_NOTIFY);	
 	g_hCVar_PreventEmptyServer =  CreateConVar("l4d2_acs_prevent_empty_server", "1", "当服务器是附加战役且没有玩家在服务器时自动切换到第一个可用的官方图. 0=禁用, 1=启用.", FCVAR_NOTIFY);	
 	
 	//Hook console variable changes
@@ -1016,7 +1016,6 @@ public void OnPluginStart() {
 	HookConVarChange(g_hCVar_MaxFinaleFailures, CVarChange_MaxFinaleFailures);
 	HookConVarChange(g_hCVar_ChMapBroadcastInterval, CVarChange_ChMapBroadcastInterval);
 	HookConVarChange(g_hCVar_PreventEmptyServer, CVarChange_PreventEmptyServer);
-	HookConVarChange(g_hCVar_ChMapDelayTime, CVarChange_PreventEmptyServer);
 	
 	AutoExecConfig(true, "l4d2_acs");
 	

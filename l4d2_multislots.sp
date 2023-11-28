@@ -36,7 +36,7 @@ int		g_iAway, g_iKick, g_iSset, g_iMaxs, g_iLimit, g_iTeam, g_iAutobot, g_iAllIn
 ConVar	g_hAway, g_hKick, g_hSset, g_hMaxs, g_hLimit, g_hTeam, g_hAutobot, g_hAllInRestart;
 
 int		g_iMaxplayers;
-bool	gbIsKickBot;
+bool	gbIsKickBot, gbIsBanDeathAway;
 
 bool	bMaxplayers, g_bRoundStarted, gbVehicleLeaving, gbFirstItemPickedUp;
 bool	PlayerWentAFK[MAXPLAYERS + 1], MenuFunc_SpecNext[MAXPLAYERS + 1];
@@ -102,9 +102,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_kb", Command_kickbot, "踢出所有电脑幸存者.");
 	RegConsoleCmd("sm_fh", Command_Respawn, "复活并传送到其他幸存者的位置，需要管理员权限.");
 	RegConsoleCmd("sm_fha", Command_RespawnAll, "复活全部幸存者.");
+	RegConsoleCmd("sm_banaway", Command_BanAway, "复活全部幸存者.");
 	RegConsoleCmd("sm_restart", Command_RestartRound, "重启当前回合. 用法: sm_restart <L4D2_RestartReason> || 留空auto");
-
-	gbIsKickBot		= false;	//初始化踢出电脑
 
 	g_hSLimit		= FindConVar("survivor_limit");
 	g_hGive0		= CreateConVar("l4d2_multislots_Survivor_spawn0", "1", "启用给予玩家武器和物品. 0=禁用, 1=启用.", CVAR_FLAGS);
@@ -1394,7 +1393,12 @@ public Action GoAFK(int client, int args)
 				else if (g_iAway == 2)
 				{
 					if (bCheckClientAccess(client))
-						ChangeClientTeam(client, 1);
+					{
+						if (IsPlayerAlive(client) || !gbIsBanDeathAway)
+							ChangeClientTeam(client, 1);
+						else
+							ReplyToCommand(client, "\x04[提示]\x05死亡状态下away指令已被禁用.");
+					}
 					else
 						ReplyToCommand(client, "\x04[提示]\x05加入旁观者指令只限管理员使用.");
 				}
@@ -1499,6 +1503,20 @@ public Action Command_RespawnAll(int client, int args)
 			TeleportEntity(i, Origin, NULL_VECTOR, NULL_VECTOR);
 		}
 	}
+
+	return Plugin_Handled;
+}
+
+public Action Command_BanAway(int client, any args)
+{
+	if (!bCheckClientAccess(client))
+	{
+		PrintToChat(client, "\x05[失败] \x04你无权使用!banaway指令");
+		return Plugin_Handled;
+	}
+
+	gbIsBanDeathAway = !gbIsBanDeathAway;
+	PrintToChat(client, "\x04[提示] \x05已%s\x05死亡状态下away指令", gbIsBanDeathAway ? "\x04禁用" : "\x03启用");
 
 	return Plugin_Handled;
 }
